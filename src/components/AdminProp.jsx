@@ -112,12 +112,12 @@ function AdminProp() {
             <Link to="/admin/properties" className="nav-item active">
               <FaBuilding /> Properties
             </Link>
-            <div className="nav-item">
+            <Link to="/admin/transactions" className="nav-item">
               <FaMoneyBillWave /> Transactions
-            </div>
-            <div className="nav-item last-item">
+            </Link>
+            <Link to="/admin/government" className="nav-item last-item">
               <FaLandmark /> Government
-            </div>
+            </Link>
           </div>
           <div className="mobile-menu-footer">
             <ProfileCircle />

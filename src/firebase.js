@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "izzytechteam.firebaseapp.com",
   databaseURL: "https://izzytechteam-default-rtdb.firebaseio.com",
   projectId: "izzytechteam",
-  storageBucket: "izzytechteam.firebasestorage.app",
+  storageBucket: "izzytechteam.appspot.com",
   messagingSenderId: "973058151155",
   appId: "1:973058151155:web:b34b6079db2c953608dd86"
 };
@@ -20,8 +20,8 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize services
 const auth = getAuth(app);
-const db = getFirestore(app);
+const database = getDatabase(app);
 const storage = getStorage(app);
 
-export { auth, db, storage };
+export { auth, database as db, storage };
 export default app; 

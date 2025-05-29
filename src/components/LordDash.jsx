@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './LordDash.css';
 import { FaHome, FaBuilding, FaQuestionCircle, FaMoneyBill, FaBars, FaTimes } from 'react-icons/fa';
 import logo from '../assets/logo.jpg';
@@ -18,18 +19,18 @@ function LordDash() {
         
         <nav className="nav-menu">
           <div className="menu-items">
-            <div className="nav-item active">
+            <Link to="/landlord" className="nav-item active">
               <FaHome /> Dashboard
-            </div>
-            <div className="nav-item">
+            </Link>
+            <Link to="/landlord/properties" className="nav-item">
               <FaBuilding /> Properties
-            </div>
-            <div className="nav-item">
+            </Link>
+            <Link to="/landlord/inquiries" className="nav-item">
               <FaQuestionCircle /> Inquiries
-            </div>
-            <div className="nav-item">
+            </Link>
+            <Link to="/landlord/payments" className="nav-item">
               <FaMoneyBill /> Payments
-            </div>
+            </Link>
           </div>
           <div className="mobile-menu-footer">
             <ProfileCircle />
