@@ -62,6 +62,18 @@ function LandProp() {
     };
   }, []);
 
+  // Add effect to handle body scroll when sidebar is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
+
   const getFilteredProperties = () => {
     let filtered = [...properties];
     
@@ -118,8 +130,20 @@ function LandProp() {
     setIsModalOpen(false);
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
   return (
     <div className="landlord-dashboard">
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-menu-overlay active" 
+          onClick={handleOverlayClick}
+        />
+      )}
       <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="logo-section">
           <img src={logo} alt="ITT Real Estate Logo"/>
@@ -148,7 +172,7 @@ function LandProp() {
         </nav>
       </aside>
 
-      <main className="main-content">
+      <main className={`main-content ${isMobileMenuOpen ? 'sidebar-open' : ''}`}>
         <div className="dashboard-header">
           <h1 className="dashboard-title">My Properties</h1>
           <div className="header-actions">

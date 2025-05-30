@@ -4,11 +4,14 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  align-items: flex-start;
+  z-index: 9999;
+  padding: 1rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-content {
@@ -20,6 +23,20 @@
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  margin: 2rem auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-header {
@@ -27,6 +44,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 0.5rem 0;
+  z-index: 1;
+  border-bottom: 1px solid #eee;
 }
 
 .modal-header h2 {
@@ -46,10 +69,12 @@
   align-items: center;
   justify-content: center;
   transition: color 0.3s ease;
+  border-radius: 50%;
 }
 
 .close-button:hover {
   color: #1a4ba1;
+  background-color: #f0f7ff;
 }
 
 .form-grid {
@@ -86,6 +111,7 @@
 .form-group textarea:focus {
   outline: none;
   border-color: #1a4ba1;
+  box-shadow: 0 0 0 2px rgba(26, 75, 161, 0.1);
 }
 
 .form-group textarea {
@@ -109,6 +135,13 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: #666;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.checkbox-label:hover {
+  background-color: #f0f7ff;
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -161,6 +194,11 @@
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 2rem;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 1rem 0;
+  border-top: 1px solid #eee;
 }
 
 .cancel-button,
@@ -171,6 +209,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-width: 120px;
 }
 
 .cancel-button {
@@ -198,15 +237,29 @@
 }
 
 @media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0;
+  }
+
   .modal-content {
-    padding: 1.5rem;
-    width: 95%;
-    max-height: 95vh;
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 1rem;
+    margin-bottom: 1rem;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+    padding: 0 1rem;
   }
 
   .form-group {
@@ -215,21 +268,17 @@
 
   .amenities-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    padding: 0.8rem;
   }
 
   .form-actions {
-    flex-direction: column;
-    gap: 0.8rem;
+    padding: 1rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   }
 
   .cancel-button,
   .submit-button {
-    width: 100%;
-  }
-
-  .modal-header h2 {
-    font-size: 1.3rem;
+    flex: 1;
+    padding: 0.75rem 1rem;
   }
 }
 

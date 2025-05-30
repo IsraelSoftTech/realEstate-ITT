@@ -316,8 +316,102 @@
   }
 
   .main-content {
-    margin: 0;
+    margin-left: 0;
     width: 100%;
+    padding: 1rem;
+    padding-top: 4.5rem;
+  }
+
+  .dashboard-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    z-index: 1001;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .content-section {
+    margin-top: 1rem;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .tabs-container {
+    position: sticky;
+    top: 4.5rem;
+    background-color: #f8f9fa;
+    z-index: 1000;
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .tab-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .properties-table-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: white;
+    border-radius: 0;
+  }
+
+  .table-actions {
+    position: sticky;
+    top: 8.5rem;
+    z-index: 999;
+    background: white;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .action-button {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    justify-content: center;
+  }
+
+  .properties-table {
+    min-width: 800px;
+    margin-top: 1rem;
+  }
+
+  .properties-table th,
+  .properties-table td {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .table-actions .icon-button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .status-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .desktop-profile,
+  .desktop-logout {
+    display: none;
+  }
+
+  .mobile-menu-footer {
+    display: block;
     padding: 1rem;
   }
 
@@ -327,79 +421,77 @@
     left: 0;
     height: 100vh;
     transform: translateX(-100%);
-    width: 80%;
-    max-width: 250px;
-    overflow-y: auto;
+    width: 100%;
+    max-width: 300px;
+    z-index: 10000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar.mobile-open {
     transform: translateX(0);
   }
 
-  .mobile-menu-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .desktop-profile,
-  .desktop-logout {
-    display: none;
-  }
-
   .menu-toggle {
-    display: block;
+    display: flex;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10001;
+    background-color: #1a4ba1;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid white;
+    transition: all 0.3s ease;
   }
 
-  .dashboard-title {
-    font-size: 1.5rem;
+  .menu-toggle:hover {
+    background-color: #153d84;
+    transform: scale(1.05);
   }
 
-  .content-section {
-    padding: 1rem;
+  .menu-toggle:active {
+    transform: scale(0.95);
   }
 
-  .tabs-container {
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-  }
-
-  .tab-button {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    white-space: nowrap;
-  }
-
-  .table-actions {
-    flex-direction: column;
-  }
-
-  .action-button {
-    width: 100%;
-  }
-
-  .properties-table th,
-  .properties-table td {
-    padding: 0.75rem;
-  }
-
-  .status-badge {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
+  .loading-overlay {
+    position: fixed;
+    z-index: 1002;
   }
 }
 
 @media (max-width: 480px) {
   .main-content {
     padding: 0.75rem;
+    padding-top: 4rem;
   }
 
-  .content-section {
+  .dashboard-header {
     padding: 0.75rem;
   }
 
   .dashboard-title {
     font-size: 1.25rem;
+  }
+
+  .tabs-container {
+    padding: 0.75rem;
+    top: 4rem;
+  }
+
+  .table-actions {
+    padding: 0.75rem;
+    top: 7.5rem;
+  }
+
+  .action-button {
+    padding: 0.6rem;
+    font-size: 0.875rem;
   }
 
   .properties-table th,
@@ -408,13 +500,12 @@
     font-size: 0.8125rem;
   }
 
-  .property-name {
-    font-size: 0.875rem;
+  .property-info {
+    gap: 0.5rem;
   }
 
-  .status-badge {
-    padding: 0.15rem 0.4rem;
-    font-size: 0.75rem;
+  .property-name {
+    font-size: 0.875rem;
   }
 }
 
