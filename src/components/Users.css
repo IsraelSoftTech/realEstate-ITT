@@ -184,12 +184,14 @@
   font-weight: 600;
   color: #374151;
   border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .users-table td {
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
   color: #1f2937;
+  vertical-align: middle;
 }
 
 .users-table tr:last-child td {
@@ -211,12 +213,31 @@
   color: #1a237e;
 }
 
+/* Enhanced Status Badge Styling */
+.status-column {
+  text-align: center;
+  min-width: 120px;
+}
+
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  text-transform: capitalize;
+}
+
+.status-badge::before {
+  content: '';
   display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
 }
 
 .status-badge.active {
@@ -224,14 +245,26 @@
   color: #166534;
 }
 
+.status-badge.active::before {
+  background-color: #16a34a;
+}
+
 .status-badge.inactive {
   background-color: #fee2e2;
   color: #991b1b;
 }
 
+.status-badge.inactive::before {
+  background-color: #dc2626;
+}
+
 .status-badge.pending {
   background-color: #fef3c7;
   color: #92400e;
+}
+
+.status-badge.pending::before {
+  background-color: #d97706;
 }
 
 .table-actions {
@@ -374,48 +407,58 @@
   }
 
   .users-table-container {
-    margin-top: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+
+  .users-table {
+    min-width: 100%;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.875rem 1rem;
+  }
+
+  .status-column {
+    min-width: 100px;
+  }
+
+  .status-badge {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    min-width: 80px;
   }
 
   .table-actions {
     position: sticky;
     top: 8.5rem;
     z-index: 999;
-    background: white;
-    margin: 0 -1rem;
+    background: rgba(255, 255, 255, 0.95);
     padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
   }
 
   .action-button {
     width: 100%;
-    padding: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .users-table {
-    min-width: 800px;
-    margin-top: 1rem;
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
   }
 
   .users-table th,
   .users-table td {
-    padding: 0.75rem;
-    font-size: 0.875rem;
-  }
-
-  .table-actions .icon-button {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-  }
-
-  .status-badge {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.875rem 1rem;
   }
 
   .desktop-profile,
@@ -504,8 +547,28 @@
 
   .users-table th,
   .users-table td {
-    padding: 0.5rem;
-    font-size: 0.8125rem;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .user-info {
+    gap: 0.5rem;
+  }
+
+  .user-name {
+    font-size: 0.9375rem;
+  }
+
+  .status-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: 70px;
+  }
+
+  .status-badge::before {
+    width: 4px;
+    height: 4px;
+    margin-right: 4px;
   }
 }
 
@@ -551,4 +614,23 @@
   font-family: monospace;
   white-space: pre-wrap;
   overflow-x: auto;
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) {
+  .action-button:active {
+    transform: scale(0.98);
+  }
+
+  .users-table tr:active {
+    background-color: #f3f4f6;
+  }
+}
+
+/* High-DPI Screen Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .table-actions {
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+  }
 } 

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './LandProp.css';
-import { FaHome, FaBuilding, FaQuestionCircle, FaMoneyBill, FaBars, FaTimes, FaSearch, FaPlus } from 'react-icons/fa';
+import { FaHome, FaBuilding, FaQuestionCircle, FaMoneyBill, FaBars, FaTimes, FaSearch, FaPlus, FaCheck } from 'react-icons/fa';
 import logo from '../assets/logo.jpg';
 import LogoutButton from './LogoutButton';
 import ProfileCircle from './ProfileCircle';
 import PropertyFormModal from './PropertyFormModal';
+import PropertyDetailsModal from './PropertyDetailsModal';
 import { toast } from 'react-toastify';
-import { getDatabase, ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, onValue, query, orderByChild, equalTo, update, set, push } from 'firebase/database';
 import { auth } from '../firebase';
 
 function LandProp() {
@@ -17,7 +18,8 @@ function LandProp() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [viewingProperty, setViewingProperty] = useState(null);
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -27,39 +29,36 @@ function LandProp() {
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      toast.error('You must be logged in to access this page');
+      return;
+    }
 
     const db = getDatabase();
     const propertiesRef = ref(db, 'properties');
 
-    // Set up real-time listener
     const unsubscribe = onValue(propertiesRef, (snapshot) => {
-      const propertyList = [];
-      snapshot.forEach((childSnapshot) => {
-        const property = childSnapshot.val();
-        if (property.ownerId === user.uid) {
-          propertyList.push({
-            id: childSnapshot.key,
-            ...property
-          });
-        }
-      });
-      
-      // Sort by createdAt in descending order
-      propertyList.sort((a, b) => b.createdAt - a.createdAt);
-      
-      setProperties(propertyList);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching properties:", error);
-      toast.error('Error loading properties');
-      setLoading(false);
+      try {
+        const propertyList = [];
+        snapshot.forEach((childSnapshot) => {
+          const property = childSnapshot.val();
+          if (property.ownerId === user.uid) {
+            propertyList.push({
+              id: childSnapshot.key,
+              ...property
+            });
+          }
+        });
+        
+        propertyList.sort((a, b) => b.createdAt - a.createdAt);
+        setProperties(propertyList);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+        toast.error('Error loading properties');
+      }
     });
 
-    return () => {
-      // Cleanup listener
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   // Add effect to handle body scroll when sidebar is open
@@ -77,19 +76,17 @@ function LandProp() {
   const getFilteredProperties = () => {
     let filtered = [...properties];
     
-    // Filter by tab
     if (activeTab !== 'all') {
       filtered = filtered.filter(prop => prop.status === activeTab);
     }
 
-    // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(prop => 
-        prop.name.toLowerCase().includes(query) ||
-        prop.location.toLowerCase().includes(query) ||
-        prop.type.toLowerCase().includes(query) ||
-        prop.propertyType.toLowerCase().includes(query)
+        prop.name?.toLowerCase().includes(query) ||
+        prop.location?.toLowerCase().includes(query) ||
+        prop.type?.toLowerCase().includes(query) ||
+        prop.propertyType?.toLowerCase().includes(query)
       );
     }
 
@@ -112,6 +109,11 @@ function LandProp() {
     setIsModalOpen(true);
   };
 
+  const handleViewProperty = (property) => {
+    setViewingProperty(property);
+    setIsDetailsModalOpen(true);
+  };
+
   const handleSubmitProperty = async (propertyData) => {
     const user = auth.currentUser;
     if (!user) {
@@ -119,15 +121,32 @@ function LandProp() {
       return;
     }
 
-    // Add owner information to property data
-    const enrichedPropertyData = {
-      ...propertyData,
-      ownerId: user.uid,
-      ownerEmail: user.email,
-      ownerName: user.displayName || user.email
-    };
+    try {
+      const db = getDatabase();
+      const propertiesRef = ref(db, 'properties');
+      
+      // Add owner information to property data
+      const enrichedPropertyData = {
+        ...propertyData,
+        ownerId: user.uid,
+        ownerEmail: user.email,
+        ownerName: user.displayName || user.email,
+        lastModifiedBy: user.email,
+        lastModifiedAt: Date.now()
+      };
 
-    setIsModalOpen(false);
+      if (editingProperty?.id) {
+        // Update existing property
+        await update(ref(db, `properties/${editingProperty.id}`), enrichedPropertyData);
+      } else {
+        // Add new property
+        const newPropertyRef = push(propertiesRef);
+        await set(newPropertyRef, enrichedPropertyData);
+      }
+    } catch (error) {
+      console.error('Error saving property:', error);
+      throw error; // Propagate error to PropertyFormModal
+    }
   };
 
   const handleOverlayClick = (e) => {
@@ -221,9 +240,7 @@ function LandProp() {
 
         <section className="properties-section">
           <div className="properties-grid">
-            {loading ? (
-              <div className="loading-message">Loading properties...</div>
-            ) : getFilteredProperties().length > 0 ? (
+            {getFilteredProperties().length > 0 ? (
               getFilteredProperties().map(property => (
                 <div key={property.id} className="property-card">
                   <div className="property-image">
@@ -235,12 +252,17 @@ function LandProp() {
                     <span className={`status-badge ${property.status}`}>
                       {property.status}
                     </span>
+                    {property.isVerified && (
+                      <span className="verified-badge">
+                        <FaCheck /> Verified
+                      </span>
+                    )}
                   </div>
                   <div className="property-details">
                     <h3>{property.name}</h3>
                     <p className="location">{property.location}</p>
                     <p className="type">{property.propertyType} - For {property.type}</p>
-                    <p className="price">XAF {property.price.toLocaleString()}</p>
+                    <p className="price">XAF {Number(property.price).toLocaleString()}</p>
                     {property.bedrooms && (
                       <p className="specs">
                         {property.bedrooms} beds • {property.bathrooms} baths • {property.area}sqm
@@ -255,6 +277,7 @@ function LandProp() {
                       </button>
                       <button 
                         className="action-button view-button"
+                        onClick={() => handleViewProperty(property)}
                       >
                         View Details
                       </button>
@@ -285,6 +308,20 @@ function LandProp() {
         }}
         onSubmit={handleSubmitProperty}
         initialData={editingProperty}
+      />
+
+      <PropertyDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setViewingProperty(null);
+        }}
+        property={viewingProperty}
+        onEdit={(property) => {
+          setIsDetailsModalOpen(false);
+          setEditingProperty(property);
+          setIsModalOpen(true);
+        }}
       />
     </div>
   );

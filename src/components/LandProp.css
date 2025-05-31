@@ -193,10 +193,19 @@
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .property-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.property-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
 .property-image {
@@ -220,6 +229,9 @@
   font-size: 0.8rem;
   font-weight: 500;
   text-transform: capitalize;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .status-badge.listed {
@@ -230,6 +242,26 @@
 .status-badge.unlisted {
   background-color: #fef3f2;
   color: #b42318;
+}
+
+.verified-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background-color: #dcfce7;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.verified-badge svg {
+  font-size: 0.875rem;
 }
 
 .property-details {
@@ -274,7 +306,9 @@
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .edit-button {
@@ -293,6 +327,10 @@
 
 .view-button:hover {
   background-color: #153d84;
+}
+
+.action-button:active {
+  transform: scale(0.98);
 }
 
 .no-properties {
@@ -520,6 +558,15 @@
     height: 40px;
     font-size: 0.9rem;
   }
+
+  .verified-badge {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .verified-badge svg {
+    font-size: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -609,4 +656,26 @@
   .mobile-menu-footer button:hover {
     background: rgba(255, 255, 255, 0.2);
   }
+}
+
+/* High DPI screen optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .verified-badge,
+  .status-badge {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* Loading message styles */
+.loading-message {
+  display: none;
+}
+
+.property-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateZ(0);
+  will-change: transform;
 } 

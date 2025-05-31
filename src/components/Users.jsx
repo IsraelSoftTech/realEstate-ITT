@@ -212,25 +212,7 @@ function Users() {
           </div>
 
           <div className="users-table-container">
-            <div className="table-actions">
-              <button 
-                className="action-button primary-button"
-                onClick={() => {
-                  setEditingUser(null);
-                  setIsModalOpen(true);
-                }}
-                disabled={loading}
-              >
-                Add New User
-              </button>
-              <button 
-                className="action-button secondary-button"
-                onClick={exportToPDF}
-                disabled={loading || accounts.length === 0}
-              >
-                Export List
-              </button>
-            </div>
+        
 
             <table className="users-table">
               <thead>
@@ -291,6 +273,25 @@ function Users() {
                 )}
               </tbody>
             </table>
+            <div className="table-actions">
+              <button 
+                className="action-button primary-button"
+                onClick={() => {
+                  setEditingUser(null);
+                  setIsModalOpen(true);
+                }}
+                disabled={loading}
+              >
+                Add New User
+              </button>
+              <button 
+                className="action-button secondary-button"
+                onClick={exportToPDF}
+                disabled={loading || accounts.length === 0}
+              >
+                Export List
+              </button>
+            </div>
             {loading && (
               <div className="loading-overlay">
                 <div className="loading-spinner" />

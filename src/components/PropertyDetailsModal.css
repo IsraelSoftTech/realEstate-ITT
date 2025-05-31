@@ -1,0 +1,148 @@
+.details-modal {
+  max-width: 900px !important;
+  width: 90% !important;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.property-details-content {
+  padding: 1.5rem;
+}
+
+.property-image {
+  width: 100%;
+  height: 300px;
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.property-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.detail-group {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.detail-group h3 {
+  color: #1a237e;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.detail-item label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.detail-item span {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.description {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.amenity-tag {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.edit-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #1a4ba1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-button:hover {
+  background: #153d84;
+}
+
+@media (max-width: 768px) {
+  .details-modal {
+    width: 95% !important;
+    margin: 1rem;
+  }
+
+  .property-image {
+    height: 200px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .detail-group {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .property-details-content {
+    padding: 1rem;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .detail-item span {
+    font-size: 0.9375rem;
+  }
+} 

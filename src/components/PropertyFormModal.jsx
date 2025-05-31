@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './PropertyFormModal.css';
 import { FaTimes, FaUpload } from 'react-icons/fa';
-import { storage, db, auth } from '../firebase';
-import { ref as dbRef, push, update, set } from 'firebase/database';
+import { storage, auth } from '../firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'react-toastify';
 
@@ -19,13 +18,11 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
     bathrooms: '',
     area: '',
     amenities: [],
-    images: [],
-    mainImage: null,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    mainImage: null
   });
 
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
 
@@ -47,8 +44,31 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
       setFormData(initialData);
       setSelectedAmenities(initialData.amenities || []);
       setImagePreview(initialData.mainImage);
+    } else {
+      resetForm();
     }
-  }, [initialData]);
+  }, [initialData, isOpen]);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      location: '',
+      status: 'unlisted',
+      description: '',
+      price: '',
+      type: 'sale',
+      propertyType: 'house',
+      bedrooms: '',
+      bathrooms: '',
+      area: '',
+      amenities: [],
+      mainImage: null
+    });
+    setSelectedAmenities([]);
+    setImagePreview(null);
+    setImageFile(null);
+    setLoading(false);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -68,109 +88,92 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
     }
   };
 
-  const handleImageChange = async (e) => {
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size should be less than 5MB');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      
-      setFormData(prev => ({
-        ...prev,
-        mainImage: file
-      }));
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+    setImageFile(file);
   };
 
   const uploadImage = async (file) => {
     if (!file) return null;
     
-    const sRef = storageRef(storage, `properties/${Date.now()}-${file.name}`);
-    await uploadBytes(sRef, file);
-    const url = await getDownloadURL(sRef);
-    return url;
+    const fileName = `properties/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const sRef = storageRef(storage, fileName);
+    
+    try {
+      const snapshot = await uploadBytes(sRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      return url;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (loading) return;
 
     try {
+      setLoading(true);
+
       const user = auth.currentUser;
       if (!user) {
         toast.error('You must be logged in to manage properties');
         return;
       }
 
+      if (!formData.name || !formData.location || !formData.price) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
       let imageUrl = formData.mainImage;
-      
-      // If mainImage is a File object, upload it
-      if (formData.mainImage instanceof File) {
-        imageUrl = await uploadImage(formData.mainImage);
+
+      if (imageFile) {
+        try {
+          imageUrl = await uploadImage(imageFile);
+        } catch (error) {
+          toast.error('Error uploading image. Please try again.');
+          return;
+        }
       }
 
       const propertyData = {
-        ...formData,
-        mainImage: imageUrl,
-        amenities: selectedAmenities,
-        price: Number(formData.price) || 0,
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        status: formData.status,
+        description: formData.description.trim(),
+        price: Number(formData.price),
+        type: formData.type,
+        propertyType: formData.propertyType,
         bedrooms: Number(formData.bedrooms) || 0,
         bathrooms: Number(formData.bathrooms) || 0,
         area: Number(formData.area) || 0,
-        updatedAt: Date.now(),
-        ownerId: user.uid,
-        ownerEmail: user.email,
-        ownerName: user.displayName || user.email
+        amenities: selectedAmenities,
+        mainImage: imageUrl,
+        createdAt: initialData?.createdAt || Date.now(),
+        updatedAt: Date.now()
       };
 
-      if (initialData?.id) {
-        // Update existing property
-        const updates = {};
-        updates[`/properties/${initialData.id}`] = propertyData;
-        await update(dbRef(db), updates);
-        toast.success('Property updated successfully!');
-      } else {
-        // Add new property
-        propertyData.createdAt = Date.now();
-        const newPropertyRef = push(dbRef(db, 'properties'));
-        await set(newPropertyRef, propertyData);
-        toast.success('Property added successfully!');
-      }
-
-      onSubmit(propertyData);
+      await onSubmit(propertyData);
+      resetForm();
       onClose();
-      
-      // Reset form data
-      setFormData({
-        name: '',
-        location: '',
-        status: 'unlisted',
-        description: '',
-        price: '',
-        type: 'sale',
-        propertyType: 'house',
-        bedrooms: '',
-        bathrooms: '',
-        area: '',
-        amenities: [],
-        images: [],
-        mainImage: null,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
-      setSelectedAmenities([]);
-      setImagePreview(null);
-      setLoading(false);
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error saving property: ' + error.message);
+      console.error('Error saving property:', error);
+      toast.error('Error saving property. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -178,18 +181,18 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !loading && onClose()}>
       <div className="modal-content">
         <div className="modal-header">
           <h2>{initialData ? 'Edit Property' : 'Add New Property'}</h2>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} disabled={loading}>
             <FaTimes />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="name">Property Name</label>
+              <label htmlFor="name">Property Name*</label>
               <input
                 type="text"
                 id="name"
@@ -197,11 +200,12 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="location">Location</label>
+              <label htmlFor="location">Location*</label>
               <input
                 type="text"
                 id="location"
@@ -209,6 +213,21 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 value={formData.location}
                 onChange={handleChange}
                 required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="price">Price (XAF)*</label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                required
+                min="0"
+                disabled={loading}
               />
             </div>
 
@@ -219,7 +238,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 name="propertyType"
                 value={formData.propertyType}
                 onChange={handleChange}
-                required
+                disabled={loading}
               >
                 <option value="house">House</option>
                 <option value="apartment">Apartment</option>
@@ -236,24 +255,11 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                required
+                disabled={loading}
               >
                 <option value="sale">For Sale</option>
                 <option value="rent">For Rent</option>
               </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="price">Price (XAF)</label>
-              <input
-                type="number"
-                id="price"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                min="0"
-              />
             </div>
 
             <div className="form-group">
@@ -263,10 +269,10 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                required
+                disabled={loading}
               >
-                <option value="listed">Listed</option>
                 <option value="unlisted">Unlisted</option>
+                <option value="listed">Listed</option>
                 <option value="pending">Pending</option>
                 <option value="sold">Sold</option>
               </select>
@@ -281,6 +287,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 value={formData.bedrooms}
                 onChange={handleChange}
                 min="0"
+                disabled={loading}
               />
             </div>
 
@@ -293,6 +300,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 value={formData.bathrooms}
                 onChange={handleChange}
                 min="0"
+                disabled={loading}
               />
             </div>
 
@@ -305,6 +313,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 value={formData.area}
                 onChange={handleChange}
                 min="0"
+                disabled={loading}
               />
             </div>
           </div>
@@ -317,7 +326,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
               value={formData.description}
               onChange={handleChange}
               rows="4"
-              required
+              disabled={loading}
             />
           </div>
 
@@ -331,6 +340,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                     value={amenity}
                     checked={selectedAmenities.includes(amenity)}
                     onChange={handleChange}
+                    disabled={loading}
                   />
                   {amenity}
                 </label>
@@ -347,10 +357,11 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 accept="image/*"
                 onChange={handleImageChange}
                 className="image-input"
+                disabled={loading}
               />
               <label htmlFor="mainImage" className="image-upload-label">
                 <FaUpload />
-                <span>Choose Image</span>
+                <span>{loading ? 'Uploading...' : 'Choose Image'}</span>
               </label>
               {imagePreview && (
                 <div className="image-preview">
@@ -361,10 +372,19 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
           </div>
 
           <div className="form-actions">
-            <button type="button" className="cancel-button" onClick={onClose} disabled={loading}>
+            <button 
+              type="button" 
+              className="cancel-button" 
+              onClick={onClose} 
+              disabled={loading}
+            >
               Cancel
             </button>
-            <button type="submit" className="submit-button" disabled={loading}>
+            <button 
+              type="submit" 
+              className="submit-button" 
+              disabled={loading}
+            >
               {loading ? 'Saving...' : (initialData ? 'Update Property' : 'Add Property')}
             </button>
           </div>
