@@ -237,7 +237,7 @@ function Users() {
                     <td>{user.email}</td>
                     <td style={{ textTransform: 'capitalize' }}>{user.accountType}</td>
                     <td>
-                      <span className={`status-badge ${(user.status || 'active').toLowerCase()}`}>
+                      <span className={`status-badge-user ${(user.status || 'active').toLowerCase()}`}>
                         {user.status || 'Active'}
                       </span>
                     </td>
