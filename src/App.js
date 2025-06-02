@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Landing from './components/Landing';
 import Signin from './Auth/Signin';
 import Signup from './Auth/Signup';
@@ -12,10 +12,12 @@ import AdminProp from './components/AdminProp';
 import AdminTransac from './components/AdminTransac';
 import AdminGov from './components/AdminGov';
 import LandProp from './components/LandProp';
+import LandInquire from './components/LandInquire';
 import { createGlobalStyle } from 'styled-components';
 import { ToastContainer } from 'react-toastify';
 import Loader from './components/Loader';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider } from './contexts/AuthContext';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -58,10 +60,14 @@ const NavigationWrapper = () => {
         {/* Landlord Routes */}
         <Route path="/landlord" element={<LordDash />} />
         <Route path="/landlord/properties" element={<LandProp />} />
+        <Route path="/landlord/inquiries" element={<LandInquire />} />
         
         {/* Other Dashboard Routes */}
         <Route path="/tenant" element={<TenantDash />} />
         <Route path="/technician" element={<TechDash />} />
+        
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/landlord" replace />} />
       </Routes>
     </>
   );
@@ -70,9 +76,21 @@ const NavigationWrapper = () => {
 function App() {
   return (
     <Router>
-      <GlobalStyle />
-      <ToastContainer position="top-right" autoClose={3000} />
-      <NavigationWrapper />
+      <AuthProvider>
+        <GlobalStyle />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+        <NavigationWrapper />
+      </AuthProvider>
     </Router>
   );
 }

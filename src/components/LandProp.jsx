@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './LandProp.css';
-import { FaHome, FaBuilding, FaQuestionCircle, FaMoneyBill, FaBars, FaTimes, FaSearch, FaPlus, FaCheck } from 'react-icons/fa';
+import { FaHome, FaBuilding, FaQuestionCircle, FaMoneyBill, FaBars, FaTimes, FaSearch, FaPlus } from 'react-icons/fa';
 import logo from '../assets/logo.jpg';
 import LogoutButton from './LogoutButton';
 import ProfileCircle from './ProfileCircle';
 import PropertyFormModal from './PropertyFormModal';
 import PropertyDetailsModal from './PropertyDetailsModal';
 import { toast } from 'react-toastify';
-import { getDatabase, ref, onValue, query, orderByChild, equalTo, update, set, push } from 'firebase/database';
-import { auth } from '../firebase';
+import { getDatabase, ref, onValue, update, remove, push } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
 function LandProp() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -19,7 +19,9 @@ function LandProp() {
   const [editingProperty, setEditingProperty] = useState(null);
   const [properties, setProperties] = useState([]);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [viewingProperty, setViewingProperty] = useState(null);
+  const [viewingProperty, setViewingProperty] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -28,34 +30,25 @@ function LandProp() {
   ];
 
   useEffect(() => {
+    const auth = getAuth();
     const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to access this page');
-      return;
-    }
-
     const db = getDatabase();
     const propertiesRef = ref(db, 'properties');
-
+    
     const unsubscribe = onValue(propertiesRef, (snapshot) => {
-      try {
-        const propertyList = [];
-        snapshot.forEach((childSnapshot) => {
-          const property = childSnapshot.val();
-          if (property.ownerId === user.uid) {
-            propertyList.push({
-              id: childSnapshot.key,
-              ...property
-            });
-          }
-        });
-        
-        propertyList.sort((a, b) => b.createdAt - a.createdAt);
-        setProperties(propertyList);
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-        toast.error('Error loading properties');
-      }
+      const propertyList = [];
+      snapshot.forEach((childSnapshot) => {
+        const property = childSnapshot.val();
+        if (property.ownerEmail === user?.email) {
+          propertyList.push({
+            id: childSnapshot.key,
+            ...property
+          });
+        }
+      });
+      
+      propertyList.sort((a, b) => b.createdAt - a.createdAt);
+      setProperties(propertyList);
     });
 
     return () => unsubscribe();
@@ -94,12 +87,6 @@ function LandProp() {
   };
 
   const handleAddProperty = () => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to add a property');
-      return;
-    }
-
     setEditingProperty(null);
     setIsModalOpen(true);
   };
@@ -109,43 +96,93 @@ function LandProp() {
     setIsModalOpen(true);
   };
 
+  const handleCloseModal = () => {
+    setEditingProperty(null);
+    setIsModalOpen(false);
+  };
+
   const handleViewProperty = (property) => {
     setViewingProperty(property);
     setIsDetailsModalOpen(true);
   };
 
   const handleSubmitProperty = async (propertyData) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to manage properties');
-      return;
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const db = getDatabase();
+      const timestamp = Date.now();
+
+      // Prepare the enriched property data
+      const enrichedPropertyData = {
+        ...propertyData,
+        ownerEmail: user?.email || 'guest@example.com',
+        ownerName: user?.displayName || propertyData.owner,
+        lastModifiedBy: user?.email || 'guest',
+        lastModifiedAt: timestamp,
+        updatedAt: timestamp,
+        isVerified: false,
+        status: propertyData.status || 'unlisted',
+        createdAt: editingProperty?.id ? editingProperty.createdAt : timestamp,
+        propertyId: editingProperty?.id || `prop_${timestamp}`,
+        addedBy: user?.email || 'guest'
+      };
+
+      // Handle property update or creation
+      if (editingProperty?.id) {
+        // Update existing property
+        const propertyRef = ref(db, `properties/${editingProperty.id}`);
+        await update(propertyRef, enrichedPropertyData);
+        console.log('✓ Property updated:', editingProperty.id);
+        toast.success('Property updated successfully!');
+      } else {
+        // Add new property
+        const propertiesRef = ref(db, 'properties');
+        const newPropertyRef = push(propertiesRef);
+        
+        // Add the property ID to the data
+        enrichedPropertyData.propertyId = newPropertyRef.key;
+        
+        await update(ref(db, `properties/${newPropertyRef.key}`), enrichedPropertyData);
+        console.log('✓ New property added:', newPropertyRef.key);
+        toast.success('Property added successfully!');
+      }
+
+      // Close modal and reset state
+      setIsModalOpen(false);
+      setEditingProperty(null);
+      
+      // Refresh the properties list
+      const propertiesRef = ref(db, 'properties');
+      onValue(propertiesRef, (snapshot) => {
+        const propertyList = [];
+        snapshot.forEach((childSnapshot) => {
+          const property = childSnapshot.val();
+          propertyList.push({
+            id: childSnapshot.key,
+            ...property
+          });
+        });
+        setProperties(propertyList);
+      }, {
+        onlyOnce: true
+      });
+
+    } catch (error) {
+      console.error('❌ Error saving property:', error);
+      toast.error('Error saving property. Please try again.');
     }
+  };
+
+  const handleDeleteProperty = async (propertyId) => {
+    if (!window.confirm('Are you sure you want to delete this property?')) return;
 
     try {
       const db = getDatabase();
-      const propertiesRef = ref(db, 'properties');
-      
-      // Add owner information to property data
-      const enrichedPropertyData = {
-        ...propertyData,
-        ownerId: user.uid,
-        ownerEmail: user.email,
-        ownerName: user.displayName || user.email,
-        lastModifiedBy: user.email,
-        lastModifiedAt: Date.now()
-      };
-
-      if (editingProperty?.id) {
-        // Update existing property
-        await update(ref(db, `properties/${editingProperty.id}`), enrichedPropertyData);
-      } else {
-        // Add new property
-        const newPropertyRef = push(propertiesRef);
-        await set(newPropertyRef, enrichedPropertyData);
-      }
+      await remove(ref(db, `properties/${propertyId}`));
+      toast.success('Property deleted successfully');
     } catch (error) {
-      console.error('Error saving property:', error);
-      throw error; // Propagate error to PropertyFormModal
+      toast.error('Error deleting property');
     }
   };
 
@@ -154,6 +191,21 @@ function LandProp() {
       setIsMobileMenuOpen(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <h2>Error</h2>
+        <p>{error}</p>
+        <button 
+          className="retry-button"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="landlord-dashboard">
@@ -204,12 +256,7 @@ function LandProp() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button 
-              className="add-property-btn"
-              onClick={handleAddProperty}
-            >
-              <FaPlus /> Add Property
-            </button>
+          
             <div className="desktop-profile">
               <ProfileCircle />
             </div>
@@ -239,73 +286,86 @@ function LandProp() {
         </div>
 
         <section className="properties-section">
-          <div className="properties-grid">
-            {getFilteredProperties().length > 0 ? (
-              getFilteredProperties().map(property => (
-                <div key={property.id} className="property-card">
-                  <div className="property-image">
-                    {property.mainImage ? (
-                      <img src={property.mainImage} alt={property.name} />
-                    ) : (
-                      <div className="placeholder-image" />
-                    )}
-                    <span className={`status-badge ${property.status}`}>
-                      {property.status}
-                    </span>
-                    {property.isVerified && (
-                      <span className="verified-badge">
-                        <FaCheck /> Verified
+          <div className="table-container">
+            <table className="properties-table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Location</th>
+                  <th>Price (XAF)</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getFilteredProperties().map((property) => (
+                  <tr key={property.id}>
+                    <td>
+                      <div className="property-image-small">
+                        {property.mainImage ? (
+                          <img src={property.mainImage} alt={property.name} />
+                        ) : (
+                          <div className="no-image">No Image</div>
+                        )}
+                      </div>
+                    </td>
+                    <td>{property.name}</td>
+                    <td>{property.location}</td>
+                    <td>{Number(property.price).toLocaleString()}</td>
+                    <td>{property.propertyType} - For {property.type}</td>
+                    <td>
+                      <span className={`status-badge-land ${property.status}`}>
+                        {property.status}
                       </span>
-                    )}
-                  </div>
-                  <div className="property-details">
-                    <h3>{property.name}</h3>
-                    <p className="location">{property.location}</p>
-                    <p className="type">{property.propertyType} - For {property.type}</p>
-                    <p className="price">XAF {Number(property.price).toLocaleString()}</p>
-                    {property.bedrooms && (
-                      <p className="specs">
-                        {property.bedrooms} beds • {property.bathrooms} baths • {property.area}sqm
-                      </p>
-                    )}
-                    <div className="property-actions">
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="edit-btn"
+                          onClick={() => handleEditProperty(property)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDeleteProperty(property.id)}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          className="view-btn"
+                          onClick={() => handleViewProperty(property)}
+                        >
+                          View
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {getFilteredProperties().length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="no-properties">
+                      <p>No properties found</p>
                       <button 
-                        className="action-button edit-button"
-                        onClick={() => handleEditProperty(property)}
+                        className="add-property-btn"
+                        onClick={handleAddProperty}
                       >
-                        Edit
+                        <FaPlus /> Add Your First Property
                       </button>
-                      <button 
-                        className="action-button view-button"
-                        onClick={() => handleViewProperty(property)}
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="no-properties">
-                <p>No properties found</p>
-                <button 
-                  className="add-property-btn"
-                  onClick={handleAddProperty}
-                >
-                  <FaPlus /> Add Your First Property
-                </button>
-              </div>
-            )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>
 
       <PropertyFormModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingProperty(null);
-        }}
+        onClose={handleCloseModal}
         onSubmit={handleSubmitProperty}
         initialData={editingProperty}
       />
@@ -317,11 +377,7 @@ function LandProp() {
           setViewingProperty(null);
         }}
         property={viewingProperty}
-        onEdit={(property) => {
-          setIsDetailsModalOpen(false);
-          setEditingProperty(property);
-          setIsModalOpen(true);
-        }}
+        onEdit={handleEditProperty}
       />
     </div>
   );

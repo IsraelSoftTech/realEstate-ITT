@@ -13,11 +13,16 @@
   border: 2px solid #ffffff;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .profile-circle:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.profile-circle:active {
+  transform: scale(0.95);
 }
 
 .profile-circle .loading {
@@ -53,6 +58,7 @@
   max-width: 400px;
   text-align: center;
   animation: slideUp 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .modal-content h3 {
@@ -75,7 +81,9 @@
   border-radius: 8px;
   cursor: pointer;
   display: inline-block;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  min-width: 160px;
 }
 
 .upload-area label:disabled,
@@ -121,8 +129,73 @@
 
 @media (max-width: 768px) {
   .profile-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+    margin: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .upload-area {
+    margin: 1.25rem 0;
+  }
+
+  .upload-area label,
+  .close-modal {
+    width: 100%;
+    padding: 0.875rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-circle {
     width: 32px;
     height: 32px;
+    font-size: 0.8rem;
+    border-width: 1.5px;
+  }
+
+  .modal-content {
+    padding: 1.25rem;
+    border-radius: 12px;
+    width: 95%;
+  }
+
+  .modal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .upload-area label,
+  .close-modal {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .error-message {
     font-size: 0.9rem;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    border-radius: 6px;
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+/* Add iOS momentum scrolling */
+@supports (-webkit-overflow-scrolling: touch) {
+  .modal-content {
+    -webkit-overflow-scrolling: touch;
   }
 } 

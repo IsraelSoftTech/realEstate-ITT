@@ -8,18 +8,14 @@ import ProfileCircle from './ProfileCircle';
 import PropertyFormModal from './PropertyFormModal';
 import PropertyDetailsModal from './PropertyDetailsModal';
 import { toast } from 'react-toastify';
-import { db, auth } from '../firebase';
-import { ref, onValue, remove, query, orderByChild, update, push, set } from 'firebase/database';
+import { getDatabase, ref, onValue, update, remove } from 'firebase/database';
 
 function AdminProp() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState(null);
   const [viewingProperty, setViewingProperty] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState([]);
 
   const tabs = [
@@ -31,39 +27,38 @@ function AdminProp() {
   ];
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to access this page');
-      return;
-    }
-
+    const db = getDatabase();
     const propertiesRef = ref(db, 'properties');
     
     const unsubscribe = onValue(propertiesRef, (snapshot) => {
       try {
         const propertyList = [];
         snapshot.forEach((childSnapshot) => {
+          const property = childSnapshot.val();
           propertyList.push({
             id: childSnapshot.key,
-            ...childSnapshot.val()
+            ...property,
+            // Ensure consistent data structure
+            isVerified: property.isVerified || false,
+            status: property.status || 'unlisted',
+            createdAt: property.createdAt || Date.now(),
+            lastModifiedAt: property.lastModifiedAt || property.createdAt || Date.now(),
+            ownerName: property.ownerName || property.owner || 'Unknown Owner',
+            ownerEmail: property.ownerEmail || 'No Email'
           });
         });
         
         // Sort by createdAt in descending order
         propertyList.sort((a, b) => b.createdAt - a.createdAt);
-        
+        console.log('Loaded properties:', propertyList.length);
         setProperties(propertyList);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        toast.error('Error loading properties: ' + err.message);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error('Error processing properties:', error);
+        toast.error('Error processing properties data');
       }
     }, (error) => {
-      setError(error.message);
-      toast.error('Error loading properties: ' + error.message);
-      setLoading(false);
+      console.error('Error fetching properties:', error);
+      toast.error('Error loading properties. Please try again.');
     });
 
     return () => unsubscribe();
@@ -82,101 +77,11 @@ function AdminProp() {
   }, [isMobileMenuOpen]);
 
   const handleAddProperty = () => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to add a property');
-      return;
-    }
-
-    setEditingProperty(null);
     setIsModalOpen(true);
   };
 
-  const handleEditProperty = (property) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to edit properties');
-      return;
-    }
-
-    setEditingProperty(property);
-    setIsModalOpen(true);
-  };
-
-  const handleVerifyProperty = async (propertyId, isVerified) => {
-    try {
-      const propertyRef = ref(db, `properties/${propertyId}`);
-      await update(propertyRef, {
-        isVerified,
-        verifiedAt: isVerified ? Date.now() : null,
-        verifiedBy: isVerified ? auth.currentUser.email : null,
-      });
-      toast.success(`Property ${isVerified ? 'verified' : 'unverified'} successfully`);
-    } catch (error) {
-      toast.error('Error updating verification status');
-      console.error('Error:', error);
-    }
-  };
-
-  const handleSubmitProperty = async (propertyData) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('You must be logged in to manage properties');
-      return;
-    }
-
-    try {
-      const enrichedPropertyData = {
-        ...propertyData,
-        adminId: user.uid,
-        adminEmail: user.email,
-        adminName: user.displayName || user.email,
-        lastModifiedBy: user.email,
-        lastModifiedAt: Date.now()
-      };
-
-      if (editingProperty?.id) {
-        await update(ref(db, `properties/${editingProperty.id}`), enrichedPropertyData);
-        toast.success('Property updated successfully!');
-      } else {
-        const newPropertyRef = push(ref(db, 'properties'));
-        await set(newPropertyRef, enrichedPropertyData);
-        toast.success('Property added successfully!');
-      }
-
-      setIsModalOpen(false);
-      setEditingProperty(null);
-    } catch (error) {
-      toast.error('Error saving property. Please try again.');
-      console.error('Error:', error);
-    }
-  };
-
-  const handleDeleteProperty = async (propertyId) => {
-    if (!window.confirm('Are you sure you want to delete this property?')) return;
-
-    try {
-      await remove(ref(db, `properties/${propertyId}`));
-      toast.success('Property deleted successfully!');
-    } catch (error) {
-      toast.error('Error deleting property');
-      console.error('Error:', error);
-    }
-  };
-
-  const getFilteredProperties = () => {
-    switch (activeTab) {
-      case 'verified':
-        return properties.filter(property => property.isVerified === true);
-      case 'unverified':
-        return properties.filter(property => property.isVerified !== true);
-      case 'listed':
-        return properties.filter(property => property.status === 'listed');
-      case 'unlisted':
-        return properties.filter(property => property.status === 'unlisted');
-      default:
-        return properties;
-    }
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   const handleViewProperty = (property) => {
@@ -184,24 +89,65 @@ function AdminProp() {
     setIsDetailsModalOpen(true);
   };
 
-  const handleEditFromDetails = (property) => {
-    setIsDetailsModalOpen(false);
-    setEditingProperty(property);
-    setIsModalOpen(true);
+  const handleVerifyProperty = async (propertyId, isVerified) => {
+    try {
+      const db = getDatabase();
+      const timestamp = Date.now();
+      const propertyRef = ref(db, `properties/${propertyId}`);
+      
+      const updates = {
+        isVerified: isVerified,
+        verifiedAt: isVerified ? timestamp : null,
+        lastModifiedAt: timestamp,
+        lastModifiedBy: 'admin',
+        status: isVerified ? 'listed' : 'unlisted' // Automatically update status based on verification
+      };
+
+      await update(propertyRef, updates);
+      console.log('Property verification updated:', propertyId, isVerified);
+      toast.success(`Property ${isVerified ? 'verified' : 'unverified'} successfully`);
+    } catch (error) {
+      console.error('Error updating verification status:', error);
+      toast.error('Error updating verification status. Please try again.');
+    }
   };
 
-  if (error) {
-    return (
-      <div className="error-container">
-        <h2>Error Loading Properties</h2>
-        <p>{error}</p>
-        <p>Please check your database connection and try again.</p>
-        <pre className="error-details">
-          {JSON.stringify({ error, properties }, null, 2)}
-        </pre>
-      </div>
-    );
-  }
+  const handleDeleteProperty = async (propertyId) => {
+    if (!window.confirm('Are you sure you want to delete this property?')) return;
+
+    try {
+      const db = getDatabase();
+      await remove(ref(db, `properties/${propertyId}`));
+      toast.success('Property deleted successfully');
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      toast.error('Error deleting property. Please try again.');
+    }
+  };
+
+  const getFilteredProperties = () => {
+    let filtered = [...properties];
+    
+    switch (activeTab) {
+      case 'verified':
+        filtered = filtered.filter(property => property.isVerified === true);
+        break;
+      case 'unverified':
+        filtered = filtered.filter(property => property.isVerified !== true);
+        break;
+      case 'listed':
+        filtered = filtered.filter(property => property.status === 'listed');
+        break;
+      case 'unlisted':
+        filtered = filtered.filter(property => property.status === 'unlisted');
+        break;
+      default:
+        // Return all properties
+        break;
+    }
+
+    return filtered;
+  };
 
   return (
     <div className="admin-dashboard">
@@ -274,7 +220,6 @@ function AdminProp() {
               <button 
                 className="action-button primary-button"
                 onClick={handleAddProperty}
-                disabled={loading}
               >
                 Add New Property
               </button>
@@ -302,7 +247,7 @@ function AdminProp() {
                     <td>{property.location}</td>
                     <td>{property.ownerName || property.owner}</td>
                     <td>
-                      <span className={`status-badge ${property.status}`}>
+                      <span className={`status-badge-ad ${property.status}`}>
                         {property.status}
                       </span>
                     </td>
@@ -311,7 +256,6 @@ function AdminProp() {
                         <button
                           className={`verify-button ${property.isVerified ? 'verified' : ''}`}
                           onClick={() => handleVerifyProperty(property.id, !property.isVerified)}
-                          title={property.isVerified ? 'Remove Verification' : 'Verify Property'}
                         >
                           {property.isVerified ? (
                             <>
@@ -330,21 +274,12 @@ function AdminProp() {
                         <button 
                           className="icon-button view"
                           onClick={() => handleViewProperty(property)}
-                          disabled={loading}
                         >
                           <FaEye />
                         </button>
                         <button 
-                          className="icon-button edit"
-                          onClick={() => handleEditProperty(property)}
-                          disabled={loading}
-                        >
-                          Edit
-                        </button>
-                        <button 
                           className="icon-button delete"
                           onClick={() => handleDeleteProperty(property.id)}
-                          disabled={loading}
                         >
                           Delete
                         </button>
@@ -361,23 +296,13 @@ function AdminProp() {
                 )}
               </tbody>
             </table>
-            {properties.length === 0 && loading && (
-              <div className="loading-overlay">
-                <div className="loading-spinner" />
-              </div>
-            )}
           </div>
         </section>
       </main>
 
       <PropertyFormModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingProperty(null);
-        }}
-        onSubmit={handleSubmitProperty}
-        initialData={editingProperty}
+        onClose={handleCloseModal}
       />
 
       <PropertyDetailsModal
@@ -387,10 +312,9 @@ function AdminProp() {
           setViewingProperty(null);
         }}
         property={viewingProperty}
-        onEdit={handleEditFromDetails}
       />
     </div>
   );
 }
 
-export default AdminProp; 
+export default AdminProp;
