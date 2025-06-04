@@ -12,13 +12,28 @@ const INITIAL_FORM_STATE = {
   price: '',
   type: 'sale',
   propertyType: 'house',
+  zoning: 'residential',
+  intendedUse: '',
+  layout: '',
+  size: '',
+  sizeUnit: 'sqm',
+  region: '',
+  city: '',
+  village: '',
+  verificationStatus: 'pending',
+  virtualTour: '',
   bedrooms: '',
   bathrooms: '',
   area: '',
   amenities: [],
   mainImage: null,
   owner: '',
-  ownerContact: ''
+  ownerContact: '',
+  documents: [],
+  gpsCoordinates: {
+    latitude: '',
+    longitude: ''
+  }
 };
 
 function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
@@ -40,6 +55,66 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
     'Internet',
     'Cable TV',
     'Balcony'
+  ];
+
+  const propertyTypes = [
+    { value: 'house', label: 'House' },
+    { value: 'land', label: 'Land' },
+    { value: 'apartment', label: 'Apartment' },
+    { value: 'villa', label: 'Villa' },
+    { value: 'commercial', label: 'Commercial' }
+  ];
+
+  const zoningTypes = [
+    { value: 'residential', label: 'Residential' },
+    { value: 'commercial', label: 'Commercial' },
+    { value: 'industrial', label: 'Industrial' }
+  ];
+
+  const propertyStatus = [
+    { value: 'sale', label: 'For Sale' },
+    { value: 'rent', label: 'For Rent' },
+    { value: 'pledge', label: 'Pledge' }
+  ];
+
+  const intendedUses = [
+    { value: 'home', label: 'Home' },
+    { value: 'school', label: 'School' },
+    { value: 'bar', label: 'Bar' },
+    { value: 'hotel', label: 'Hotel' },
+    { value: 'office', label: 'Office' }
+  ];
+
+  const regions = [
+    'Northwest Region',
+    'Southwest Region',
+    'West Region',
+    'Littoral Region',
+    'Centre Region',
+    'South Region',
+    'East Region',
+    'Adamawa Region',
+    'North Region',
+    'Far North Region'
+  ];
+
+  const northwestCities = [
+    'Bamenda',
+    'Ndop',
+    'Wum',
+    'Kumbo',
+    'Fundong',
+    'Nkambe',
+    'Mbengwi'
+  ];
+
+  const northwestVillages = [
+    'Mankon',
+    'Nkwen',
+    'Bafut',
+    'Bali',
+    'Babanki',
+    'Bambili'
   ];
 
   const resetForm = useCallback(() => {
@@ -183,6 +258,16 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
         status: formData.status || 'unlisted',
         type: formData.type || 'sale',
         propertyType: formData.propertyType || 'house',
+        zoning: formData.zoning || 'residential',
+        intendedUse: formData.intendedUse || 'home',
+        layout: formData.layout || '',
+        size: formData.size || '',
+        sizeUnit: formData.sizeUnit || 'sqm',
+        region: formData.region || '',
+        city: formData.city || '',
+        village: formData.village || '',
+        verificationStatus: formData.verificationStatus || 'pending',
+        virtualTour: formData.virtualTour || '',
         submittedAt: Date.now()
       };
 
@@ -298,11 +383,9 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 onChange={handleChange}
                 disabled={loading}
               >
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="villa">Villa</option>
-                <option value="land">Land</option>
-                <option value="commercial">Commercial</option>
+                {propertyTypes.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
               </select>
             </div>
 
@@ -315,8 +398,9 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 onChange={handleChange}
                 disabled={loading}
               >
-                <option value="sale">For Sale</option>
-                <option value="rent">For Rent</option>
+                {propertyStatus.map(status => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
               </select>
             </div>
 
@@ -373,6 +457,189 @@ function PropertyFormModal({ isOpen, onClose, onSubmit, initialData }) {
                 min="0"
                 disabled={loading}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="zoning">Zoning Type</label>
+              <select
+                id="zoning"
+                name="zoning"
+                value={formData.zoning}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                {zoningTypes.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="intendedUse">Intended Use</label>
+              <select
+                id="intendedUse"
+                name="intendedUse"
+                value={formData.intendedUse}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <option value="">Select Intended Use</option>
+                {intendedUses.map(use => (
+                  <option key={use.value} value={use.value}>{use.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="layout">Layout</label>
+              <select
+                id="layout"
+                name="layout"
+                value={formData.layout}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <option value="">Select Layout</option>
+                <option value="RKT">Room-Kitchen-Toilet (RKT)</option>
+                <option value="RPKT">Room-Parlor-Kitchen-Toilet (RPKT)</option>
+                <option value="2-RPKT">2-RPKT</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="region">Region</label>
+              <select
+                id="region"
+                name="region"
+                value={formData.region}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <option value="">Select Region</option>
+                {regions.map(region => (
+                  <option key={region} value={region}>{region}</option>
+                ))}
+              </select>
+            </div>
+
+            {formData.region === 'Northwest Region' && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="city">City/Town</label>
+                  <select
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="">Select City/Town</option>
+                    {northwestCities.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="village">Village</label>
+                  <select
+                    id="village"
+                    name="village"
+                    value={formData.village}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="">Select Village</option>
+                    {northwestVillages.map(village => (
+                      <option key={village} value={village}>{village}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="size">Size</label>
+              <div className="size-input-group">
+                <input
+                  type="number"
+                  id="size"
+                  name="size"
+                  value={formData.size}
+                  onChange={handleChange}
+                  min="0"
+                  disabled={loading}
+                  placeholder="Enter size"
+                />
+                <select
+                  id="sizeUnit"
+                  name="sizeUnit"
+                  value={formData.sizeUnit}
+                  onChange={handleChange}
+                  disabled={loading}
+                >
+                  <option value="sqm">Square Meters</option>
+                  <option value="hectares">Hectares</option>
+                  <option value="acres">Acres</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="virtualTour">Virtual Tour URL</label>
+              <input
+                type="url"
+                id="virtualTour"
+                name="virtualTour"
+                value={formData.virtualTour}
+                onChange={handleChange}
+                disabled={loading}
+                placeholder="Enter virtual tour URL if available"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gpsCoordinates">GPS Coordinates</label>
+              <div className="coordinates-group">
+                <input
+                  type="text"
+                  id="latitude"
+                  name="gpsCoordinates.latitude"
+                  value={formData.gpsCoordinates.latitude}
+                  onChange={handleChange}
+                  disabled={loading}
+                  placeholder="Latitude"
+                />
+                <input
+                  type="text"
+                  id="longitude"
+                  name="gpsCoordinates.longitude"
+                  value={formData.gpsCoordinates.longitude}
+                  onChange={handleChange}
+                  disabled={loading}
+                  placeholder="Longitude"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Property Documents</label>
+              <input
+                type="file"
+                id="documents"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setFormData(prev => ({
+                    ...prev,
+                    documents: [...prev.documents, ...files]
+                  }));
+                }}
+                disabled={loading}
+              />
+              <small>Upload property documents (deeds, certificates, etc.)</small>
             </div>
           </div>
 

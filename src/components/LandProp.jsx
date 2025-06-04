@@ -11,6 +11,67 @@ import { toast } from 'react-toastify';
 import { getDatabase, ref, onValue, update, remove, push } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
+// Property type definitions
+const propertyTypes = [
+  { value: 'house', label: 'House' },
+  { value: 'land', label: 'Land' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'commercial', label: 'Commercial' }
+];
+
+const zoningTypes = [
+  { value: 'residential', label: 'Residential' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'industrial', label: 'Industrial' }
+];
+
+const propertyStatus = [
+  { value: 'sale', label: 'For Sale' },
+  { value: 'rent', label: 'For Rent' },
+  { value: 'pledge', label: 'Pledge' }
+];
+
+const intendedUses = [
+  { value: 'home', label: 'Home' },
+  { value: 'school', label: 'School' },
+  { value: 'bar', label: 'Bar' },
+  { value: 'hotel', label: 'Hotel' },
+  { value: 'office', label: 'Office' }
+];
+
+const regions = [
+  'Northwest Region',
+  'Southwest Region',
+  'West Region',
+  'Littoral Region',
+  'Centre Region',
+  'South Region',
+  'East Region',
+  'Adamawa Region',
+  'North Region',
+  'Far North Region'
+];
+
+const northwestCities = [
+  'Bamenda',
+  'Ndop',
+  'Wum',
+  'Kumbo',
+  'Fundong',
+  'Nkambe',
+  'Mbengwi'
+];
+
+const northwestVillages = [
+  'Mankon',
+  'Nkwen',
+  'Bafut',
+  'Bali',
+  'Babanki',
+  'Bambili'
+];
+
 function LandProp() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -26,8 +87,24 @@ function LandProp() {
   const tabs = [
     { id: 'all', label: 'All' },
     { id: 'listed', label: 'Listed' },
-    { id: 'unlisted', label: 'Unlisted' }
+    { id: 'unlisted', label: 'Unlisted' },
+    { id: 'pending', label: 'Pending Verification' },
+    { id: 'verified', label: 'Verified' }
   ];
+
+  const [filters, setFilters] = useState({
+    propertyType: '',
+    zoning: '',
+    type: '',
+    intendedUse: '',
+    region: '',
+    city: '',
+    village: '',
+    priceRange: {
+      min: '',
+      max: ''
+    }
+  });
 
   useEffect(() => {
     const auth = getAuth();
@@ -70,7 +147,47 @@ function LandProp() {
     let filtered = [...properties];
     
     if (activeTab !== 'all') {
-      filtered = filtered.filter(prop => prop.status === activeTab);
+      filtered = filtered.filter(prop => {
+        if (activeTab === 'verified') return prop.verificationStatus === 'verified';
+        if (activeTab === 'pending') return prop.verificationStatus === 'pending';
+        return prop.status === activeTab;
+      });
+    }
+
+    if (filters.propertyType) {
+      filtered = filtered.filter(prop => prop.propertyType === filters.propertyType);
+    }
+
+    if (filters.zoning) {
+      filtered = filtered.filter(prop => prop.zoning === filters.zoning);
+    }
+
+    if (filters.type) {
+      filtered = filtered.filter(prop => prop.type === filters.type);
+    }
+
+    if (filters.intendedUse) {
+      filtered = filtered.filter(prop => prop.intendedUse === filters.intendedUse);
+    }
+
+    if (filters.region) {
+      filtered = filtered.filter(prop => prop.region === filters.region);
+    }
+
+    if (filters.city) {
+      filtered = filtered.filter(prop => prop.city === filters.city);
+    }
+
+    if (filters.village) {
+      filtered = filtered.filter(prop => prop.village === filters.village);
+    }
+
+    if (filters.priceRange.min) {
+      filtered = filtered.filter(prop => Number(prop.price) >= Number(filters.priceRange.min));
+    }
+
+    if (filters.priceRange.max) {
+      filtered = filtered.filter(prop => Number(prop.price) <= Number(filters.priceRange.max));
     }
 
     if (searchQuery) {
@@ -79,7 +196,10 @@ function LandProp() {
         prop.name?.toLowerCase().includes(query) ||
         prop.location?.toLowerCase().includes(query) ||
         prop.type?.toLowerCase().includes(query) ||
-        prop.propertyType?.toLowerCase().includes(query)
+        prop.propertyType?.toLowerCase().includes(query) ||
+        prop.region?.toLowerCase().includes(query) ||
+        prop.city?.toLowerCase().includes(query) ||
+        prop.village?.toLowerCase().includes(query)
       );
     }
 
@@ -285,6 +405,107 @@ function LandProp() {
           ))}
         </div>
 
+        <div className="filters-section">
+          <div className="filter-group">
+            <select
+              value={filters.propertyType}
+              onChange={(e) => setFilters(prev => ({ ...prev, propertyType: e.target.value }))}
+            >
+              <option value="">All Property Types</option>
+              {propertyTypes.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filters.zoning}
+              onChange={(e) => setFilters(prev => ({ ...prev, zoning: e.target.value }))}
+            >
+              <option value="">All Zoning Types</option>
+              {zoningTypes.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+            >
+              <option value="">All Listing Types</option>
+              {propertyStatus.map(status => (
+                <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filters.intendedUse}
+              onChange={(e) => setFilters(prev => ({ ...prev, intendedUse: e.target.value }))}
+            >
+              <option value="">All Intended Uses</option>
+              {intendedUses.map(use => (
+                <option key={use.value} value={use.value}>{use.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <select
+              value={filters.region}
+              onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value, city: '', village: '' }))}
+            >
+              <option value="">All Regions</option>
+              {regions.map(region => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+
+            {filters.region === 'Northwest Region' && (
+              <>
+                <select
+                  value={filters.city}
+                  onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
+                >
+                  <option value="">All Cities</option>
+                  {northwestCities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.village}
+                  onChange={(e) => setFilters(prev => ({ ...prev, village: e.target.value }))}
+                >
+                  <option value="">All Villages</option>
+                  {northwestVillages.map(village => (
+                    <option key={village} value={village}>{village}</option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+
+          <div className="filter-group">
+            <input
+              type="number"
+              placeholder="Min Price"
+              value={filters.priceRange.min}
+              onChange={(e) => setFilters(prev => ({ 
+                ...prev, 
+                priceRange: { ...prev.priceRange, min: e.target.value }
+              }))}
+            />
+            <input
+              type="number"
+              placeholder="Max Price"
+              value={filters.priceRange.max}
+              onChange={(e) => setFilters(prev => ({ 
+                ...prev, 
+                priceRange: { ...prev.priceRange, max: e.target.value }
+              }))}
+            />
+          </div>
+        </div>
+
         <section className="properties-section">
           <div className="table-container">
             <table className="properties-table">
@@ -296,6 +517,7 @@ function LandProp() {
                   <th>Price (XAF)</th>
                   <th>Type</th>
                   <th>Status</th>
+                  <th>Verification</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -312,12 +534,25 @@ function LandProp() {
                       </div>
                     </td>
                     <td>{property.name}</td>
-                    <td>{property.location}</td>
+                    <td>
+                      {property.village ? `${property.village}, ` : ''}
+                      {property.city ? `${property.city}, ` : ''}
+                      {property.region || property.location}
+                    </td>
                     <td>{Number(property.price).toLocaleString()}</td>
-                    <td>{property.propertyType} - For {property.type}</td>
+                    <td>
+                      {property.propertyType} - {property.type}
+                      <br />
+                      <small>{property.zoning}</small>
+                    </td>
                     <td>
                       <span className={`status-badge-land ${property.status}`}>
                         {property.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`verification-badge ${property.verificationStatus}`}>
+                        {property.verificationStatus}
                       </span>
                     </td>
                     <td>
@@ -346,7 +581,7 @@ function LandProp() {
                 ))}
                 {getFilteredProperties().length === 0 && (
                   <tr>
-                    <td colSpan="7" className="no-properties">
+                    <td colSpan="8" className="no-properties">
                       <p>No properties found</p>
                       <button 
                         className="add-property-btn"
