@@ -26,7 +26,7 @@ function AdminTransac() {
       type: 'Property Purchase',
       amount: 'XAF250,000',
       status: 'completed',
-      parties: 'John Doe → Jane Smith'
+      parties: 'Gaston Tibah → Precious Ngum'
     },
     {
       id: 'TRX002',
@@ -34,7 +34,7 @@ function AdminTransac() {
       type: 'Rent Payment',
       amount: 'XAF1,500',
       status: 'pending',
-      parties: 'Mike Johnson → Sarah Wilson'
+      parties: 'Fondanui Joseph → Tangum Wilson'
     },
     // Add more sample transactions as needed
   ];

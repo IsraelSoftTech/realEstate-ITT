@@ -151,7 +151,7 @@ function AdminGov() {
                     <td>{doc.type}</td>
                     <td>{doc.date}</td>
                     <td>
-                      <span className={`status-badge ${doc.status}`}>
+                      <span className={`status-badge-gov ${doc.status}`}>
                         {doc.status}
                       </span>
                     </td>
